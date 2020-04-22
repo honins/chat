@@ -60,8 +60,9 @@
                 <div class="mdui-chip">
                     <span class="mdui-chip-icon mdui-color-blue">
                         <i class="mdui-icon material-icons">face</i></span>
-                    <span class="mdui-chip-title">在线人数</span>
-                    <span class="mdui-chip-title chat-num">0</span>
+                    <span class="mdui-chip-title">对方：</span>
+                    <span class="mdui-chip-title" id="targetIdSpan"></span>
+                    <span class="mdui-chip-title chat-num">离线</span>
                 </div>
                 <div class="message-container">
 
@@ -73,6 +74,28 @@
 </div>
 
 <script th:inline="javascript">
+
+    function getTargetUser() {
+    }
+
+    function showOnlineStatus (res){
+    }
+
+    function SPEAK (res){
+        var $messageContainer = $('.message-container');
+        $messageContainer.append(
+            '<div class="mdui-card" style="margin: 10px 0;">' +
+            '<div class="mdui-card-primary">' +
+            '<div class="mdui-card-content message-content">' + res.fromId + "：" + res.msg + '</div>' +
+            '</div></div>');
+        //防止刷屏
+        var $cards = $messageContainer.children('.mdui-card:visible').toArray();
+        if ($cards.length > 5) {
+            $cards.forEach(function (item, index) {
+                index < $cards.length - 5 && $(item).slideUp('fast');
+            });
+        }
+    }
 
     /**
      * WebSocket客户端
@@ -90,7 +113,7 @@
          * 当服务端打开连接
          */
         //连通之后的回调事件
-        webSocket.onopen = function () {
+        webSocket.onopen = function (event) {
             // webSocket.send(JSON.stringify({uid: parseInt($('#username').text()), msg: $('#msg')}));
             console.log("已经连通了websocket");
         };
@@ -100,23 +123,8 @@
         webSocket.onmessage = function (event) {
             console.log('WebSocket收到消息：%c' + event.data, 'color:green');
             //获取服务端消息
-            var message = JSON.parse(event.data) || {};
-            var $messageContainer = $('.message-container');
-            if (message.type === 'SPEAK') {
-                $messageContainer.append(
-                    '<div class="mdui-card" style="margin: 10px 0;">' +
-                    '<div class="mdui-card-primary">' +
-                    '<div class="mdui-card-content message-content">' + message.fromId + "：" + message.msg + '</div>' +
-                    '</div></div>');
-            }
-            $('.chat-num').text(message.onlineCount);
-            //防止刷屏
-            var $cards = $messageContainer.children('.mdui-card:visible').toArray();
-            if ($cards.length > 5) {
-                $cards.forEach(function (item, index) {
-                    index < $cards.length - 5 && $(item).slideUp('fast');
-                });
-            }
+            var res = JSON.parse(event.data) || {};
+            typeof window[res.type] === 'function' && window[res.type](res);
         };
 
         /**

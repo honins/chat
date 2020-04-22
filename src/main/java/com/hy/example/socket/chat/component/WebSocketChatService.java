@@ -97,7 +97,7 @@ public class WebSocketChatService {
      */
     @OnClose
     public void onClose(@PathParam("uid") Integer uid) {
-        onlineCount++;
+        onlineCount--;
         onlineSessions.remove(uid);
         Integer toId = bindUsersMap.get(uid);
         sendMessageToUser(MessageHandler.generatorQuitMessage(uid, toId));
