@@ -4,17 +4,19 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.collect.HashBiMap;
 import com.hy.example.socket.chat.component.constant.MessageType;
 import com.hy.example.socket.chat.pojo.Message;
-import com.hy.example.socket.chat.pojo.SessionDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.hy.example.socket.chat.component.MessageHandler.createEnterMessage;
+import static com.hy.example.socket.chat.component.MessageHandler.createQuitMessage;
 
 /**
  * 服务端
@@ -24,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
-@ServerEndpoint("/chat/{uid}")
+@ServerEndpoint("/chat/{fromUser}")
 public class WebSocketChatService {
 
     /**
@@ -35,47 +37,36 @@ public class WebSocketChatService {
     /**
      * 全部在线会话  PS: 基于场景考虑 这里使用线程安全的Map存储会话对象。
      */
-    private static Map<Integer, SessionDTO> onlineSessions = new ConcurrentHashMap<Integer, SessionDTO>();
+    private static Map<String, Session> onlineSessions = new ConcurrentHashMap<String, Session>();
 
     /**
      * 用户绑定的demo数据
-     * key 患者id
-     * value 医生id
+     * key、value 用户身份
      */
-    private static HashBiMap<Integer, Integer> bindUsersMap = HashBiMap.create(16);
+    private static HashBiMap<String, String> bindUsersMap = HashBiMap.create(16);
 
     /**
      * 初始化
      */
     @PostConstruct
     public void init() {
-        bindUsersMap.put(1, 101);
-        bindUsersMap.put(2, 202);
-        bindUsersMap.put(3, 103);
-        bindUsersMap.put(101, 1);
-        bindUsersMap.put(102, 2);
-        bindUsersMap.put(103, 3);
+        bindUsersMap.put("p1", "d1");
+        bindUsersMap.put("p2", "d2");
+        bindUsersMap.put("p3", "d3");
+
+        bindUsersMap.put("d1", "p1");
+        bindUsersMap.put("d2", "p2");
+        bindUsersMap.put("d3", "p3");
     }
 
     /**
      * 当客户端打开连接：1.添加会话对象 2.更新在线人数
      */
     @OnOpen
-    public void onOpen(@PathParam("uid") Integer uid, Session session) {
-        if (onlineSessions.containsKey(uid)) {
-            return;
-        }
-        SessionDTO sessionDTO = SessionDTO.builder()
-                .uid(uid)
-                .session(session)
-                .build();
-        onlineSessions.put(uid, sessionDTO);
-        onlineCount++;
-        Integer toId = bindUsersMap.get(uid);
-        if (toId == null) {
-            return;
-        }
-        sendMessageToUser(MessageHandler.generatorEnterMessage(uid, toId));
+    public void onOpen(@PathParam("fromUser") String fromUser, Session session) {
+        onlineSessions.put(fromUser, session);
+        String toUser = bindUsersMap.get(fromUser);
+        sendMessageToUser(createEnterMessage(fromUser, toUser));
     }
 
     /**
@@ -87,8 +78,7 @@ public class WebSocketChatService {
     public void onMessage(String jsonStr) {
         Message message = JSON.parseObject(jsonStr, Message.class);
         message.setType(MessageType.SPEAK);
-        Integer toId = bindUsersMap.get(message.getFromId());
-        message.setToId(toId);
+        message.setToUser(bindUsersMap.get(message.getFromUser()));
         sendMessageToUser(message);
     }
 
@@ -96,11 +86,10 @@ public class WebSocketChatService {
      * 当关闭连接：1.移除会话对象 2.更新在线人数
      */
     @OnClose
-    public void onClose(@PathParam("uid") Integer uid) {
-        onlineCount--;
-        onlineSessions.remove(uid);
-        Integer toId = bindUsersMap.get(uid);
-        sendMessageToUser(MessageHandler.generatorQuitMessage(uid, toId));
+    public void onClose(@PathParam("fromUser") String fromUser,Session session) {
+        onlineSessions.remove(fromUser);
+        String toUser = bindUsersMap.get(fromUser);
+        sendMessageToUser(createQuitMessage(fromUser, toUser));
     }
 
     /**
@@ -114,33 +103,25 @@ public class WebSocketChatService {
     /**
      * 发送信息给指定人
      */
-    private static void sendMessageToUser(Message message) {
-        Integer toId = message.getToId();
-        String messageStr = JSON.toJSONString(message);
-        try {
-            if (onlineSessions.containsKey(message.getFromId())) {
-                onlineSessions.get(message.getFromId()).getSession().getBasicRemote().sendText(messageStr);
-            }
-            if (onlineSessions.containsKey(toId)) {
-                onlineSessions.get(toId).getSession().getBasicRemote().sendText(messageStr);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+    private static void sendMessageToUser(String toUser, String messageStr) {
+        if (onlineSessions.containsKey(toUser)){
+            onlineSessions.get(toUser).getAsyncRemote().sendText(messageStr);
         }
     }
 
     /**
-     * 发送信息给所有人，用于群聊
+     * 发送信息给指定人
      */
-    private static void sendMessageToAll(Message message) {
+    private static void sendMessageToUser(Message message) {
+        String fromUser = message.getFromUser();
+        String toUser = message.getToUser();
         String messageStr = JSON.toJSONString(message);
-        onlineSessions.forEach((id, sessionDTO) -> {
-            try {
-                sessionDTO.getSession().getBasicRemote().sendText(messageStr);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        if (!StringUtils.isEmpty(message.getFromUser())){
+            sendMessageToUser(fromUser, messageStr);
+        }
+        if (!StringUtils.isEmpty(message.getToUser())){
+            sendMessageToUser(toUser, messageStr);
+        }
     }
 
 }

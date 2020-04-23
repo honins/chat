@@ -1,11 +1,9 @@
 package com.hy.example.socket.chat.pojo;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.NotNull;
 import javax.websocket.Session;
 
 /**
@@ -13,15 +11,14 @@ import javax.websocket.Session;
  * @date on 2020/4/21 16:31
  */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SessionDTO {
 
-    @NotNull
-    private Integer uid;
+    private String user;
 
-    @NotNull
+    private String sessionId;
+
     private Session session;
 
 }

@@ -1,5 +1,6 @@
 package com.hy.example.socket.chat.component;
 
+import com.alibaba.fastjson.JSON;
 import com.hy.example.socket.chat.component.constant.MessageType;
 import com.hy.example.socket.chat.pojo.Message;
 
@@ -9,22 +10,29 @@ import com.hy.example.socket.chat.pojo.Message;
  */
 public class MessageHandler {
 
-    public static Message generatorEnterMessage(Integer fromId, Integer toId){
+    public static Message createEnterMessage(String fromUser, String toUser){
         return Message.builder()
-                .fromId(fromId)
-                .toId(toId)
+                .fromUser(fromUser)
+                .toUser(toUser)
                 .type(MessageType.ENTER)
                 .msg("上线了")
                 .build();
     }
 
-    public static Message generatorQuitMessage(Integer fromId,Integer toId){
+    public static String createEnterMessageStr(String fromUser, String toUser){
+        return JSON.toJSONString(createEnterMessage(fromUser,toUser));
+    }
+
+    public static Message createQuitMessage(String fromUser, String toUser){
         return Message.builder()
-                .fromId(fromId)
-                .toId(toId)
+                .fromUser(fromUser)
+                .toUser(toUser)
                 .type(MessageType.QUIT)
                 .msg("下线了")
                 .build();
     }
 
+    public static String createQuitMessageStr(String fromUser, String toUser){
+        return JSON.toJSONString(createQuitMessageStr(fromUser,toUser));
+    }
 }

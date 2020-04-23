@@ -86,7 +86,7 @@
         $messageContainer.append(
             '<div class="mdui-card" style="margin: 10px 0;">' +
             '<div class="mdui-card-primary">' +
-            '<div class="mdui-card-content message-content">' + res.fromId + "：" + res.msg + '</div>' +
+            '<div class="mdui-card-content message-content">' + res.fromUser + "：" + res.msg + '</div>' +
             '</div></div>');
         //防止刷屏
         var $cards = $messageContainer.children('.mdui-card:visible').toArray();
@@ -152,10 +152,10 @@
      */
     function sendMsgToServer() {
         var $message = $('#msg');
-        var $uid = parseInt($('#username').text());
+        var $fromUser = $('#username').text();
         if ($message.val()) {
             webSocket.send(JSON.stringify({
-                fromId: $uid,
+                fromUser: $fromUser,
                 username: $('#username').text(),
                 msg: $message.val()
             }));

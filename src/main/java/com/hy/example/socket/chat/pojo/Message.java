@@ -16,14 +16,14 @@ import lombok.NoArgsConstructor;
 public class Message {
 
     /**
-     * 发送人id
+     * 发送人
      */
-    private Integer fromId;
+    private String fromUser;
 
     /**
-     * 接收人id
+     * 接收人
      */
-    private Integer toId;
+    private String toUser;
 
     /**
      * 消息类型
