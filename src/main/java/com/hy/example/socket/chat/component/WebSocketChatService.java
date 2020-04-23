@@ -12,6 +12,8 @@ import javax.annotation.PostConstruct;
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -122,6 +124,24 @@ public class WebSocketChatService {
         if (!StringUtils.isEmpty(message.getToUser())){
             sendMessageToUser(toUser, messageStr);
         }
+    }
+
+    /**
+     * 发送信息给群组，和发送指定人的区别就是遍历要发送的用户
+     */
+    private static void sendMessageToGroup(Message message) {
+        String fromUser = message.getFromUser();
+        //得到要发送用户的集合
+        List<String> toUserIds = new ArrayList<>();
+        String messageStr = JSON.toJSONString(message);
+        if (!StringUtils.isEmpty(message.getFromUser())){
+            sendMessageToUser(fromUser, messageStr);
+        }
+        toUserIds.forEach(id -> {
+            if (!StringUtils.isEmpty(id)){
+                sendMessageToUser(id, messageStr);
+            }
+        });
     }
 
 }
